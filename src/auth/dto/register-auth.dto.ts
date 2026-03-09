@@ -1,3 +1,4 @@
+import { Match } from 'src/common/decorators/match.decorator';
 import { LoginAuthDto } from './login-auth.dto';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
@@ -6,9 +7,6 @@ export class RegisterAuthDto extends LoginAuthDto {
   @IsString()
   username!: string;
 
-  @IsNotEmpty({ message: 'confirm password' })
-  @IsString()
-  @MinLength(8)
-  @MaxLength(20)
+  @Match('password')
   confirmPassword!: string;
 }
