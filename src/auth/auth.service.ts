@@ -1,7 +1,7 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -32,7 +32,7 @@ export class AuthService {
 
   // ==============> Register Service <==============
   async register(registerAuthDto: RegisterAuthDto) {
-    const { username, email, password, confirmPassword } = registerAuthDto;
+    const { username, email, password } = registerAuthDto;
 
     /*
         check if the user already exist
@@ -64,7 +64,7 @@ export class AuthService {
     /*
         create payload to create access token
     */
-    const payload = { id: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email };
 
     /*
         register response
@@ -83,5 +83,45 @@ export class AuthService {
   }
 
   // ==============> Login Service <==============
-  async login(loginAuthDto: LoginAuthDto) {}
+  async login(loginAuthDto: LoginAuthDto) {
+    const { email, password } = loginAuthDto;
+
+    /*
+        find the user
+    */
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    /*
+        check if email is correct
+    */
+    if (!user) {
+      throw new UnauthorizedException('invalid email or password');
+    }
+
+    /*
+        decrypt the password and check is correct
+    */
+    const validatedPassword = await bcrypt.compare(password, user.password);
+
+    if (!validatedPassword) {
+      throw new UnauthorizedException('invalid email or password');
+    }
+
+    const payload = { sub: user.id, email: user.email };
+
+    /*
+        Login response
+    */
+    return {
+      message: 'Login successfully',
+      data: {
+        id: user.id,
+        email: user.email,
+        access_token: await this.generateAccessToken(payload),
+        refresh_token: await this.generateRefreshToken(payload),
+      },
+    };
+  }
 }
