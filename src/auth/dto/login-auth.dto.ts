@@ -13,7 +13,7 @@ export class LoginAuthDto {
 
   @IsNotEmpty({ message: 'password is required' })
   @IsString()
-  @MinLength(8)
-  @MaxLength(20)
+  @MinLength(8, { message: 'password is too short (min = 8)' })
+  @MaxLength(20, { message: 'password is too long (max = 20)' })
   password!: string;
 }

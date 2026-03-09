@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { ConfigService } from '@nestjs/config';
+import { LoginAuthDto } from './dto/login-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -80,4 +81,7 @@ export class AuthService {
       },
     };
   }
+
+  // ==============> Login Service <==============
+  async login(loginAuthDto: LoginAuthDto) {}
 }
