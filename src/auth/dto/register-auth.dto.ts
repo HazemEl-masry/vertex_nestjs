@@ -7,6 +7,6 @@ export class RegisterAuthDto extends LoginAuthDto {
   @IsString()
   username!: string;
 
-  @Match('password')
+  @Match('password',{message: 'password not match'})
   confirmPassword!: string;
 }
