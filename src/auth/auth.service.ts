@@ -42,7 +42,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('email is already in use');
+      throw new ConflictException('Email is already in use');
     }
 
     /*
@@ -66,6 +66,17 @@ export class AuthService {
     */
     const payload = { sub: user.id, email: user.email };
 
+    const accessToken = await this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload);
+
+    /*
+        add refresh token to DB
+    */
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: await bcrypt.hash(refreshToken, 12) },
+    });
+
     /*
         register response
     */
@@ -75,8 +86,8 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
-        access_token: await this.generateAccessToken(payload),
-        refresh_token: await this.generateRefreshToken(payload),
+        access_token: accessToken,
+        refresh_token: refreshToken,
         createdAt: user.createdAt,
       },
     };
@@ -97,7 +108,7 @@ export class AuthService {
         check if email is correct
     */
     if (!user) {
-      throw new UnauthorizedException('invalid email or password');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     /*
@@ -106,10 +117,21 @@ export class AuthService {
     const validatedPassword = await bcrypt.compare(password, user.password);
 
     if (!validatedPassword) {
-      throw new UnauthorizedException('invalid email or password');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const payload = { sub: user.id, email: user.email };
+
+    const accessToken = await this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload);
+
+    /*
+        add new refresh token to DB
+    */
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: await bcrypt.hash(refreshToken, 12) },
+    });
 
     /*
         Login response
@@ -119,9 +141,57 @@ export class AuthService {
       data: {
         id: user.id,
         email: user.email,
-        access_token: await this.generateAccessToken(payload),
-        refresh_token: await this.generateRefreshToken(payload),
+        access_token: accessToken,
+        refresh_token: refreshToken,
       },
+    };
+  }
+
+  // ==============> Refresh Token Service <==============
+  async refreshToken(userId: string, refreshToken: string) {
+    /*
+      find user by id
+    */
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    /*
+      check if the id is correct and refresh token is in DB or no
+    */
+    if (!user || !user.refreshToken) {
+      throw new UnauthorizedException('Access Denied');
+    }
+
+    /*
+      compare between refresh token from user with refresh token in DB
+    */
+    const tokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+
+    if (!tokenMatches) {
+      throw new UnauthorizedException('Access Denied');
+    }
+
+    const payload = { sub: user.id, email: user.email };
+
+    const accessToken = await this.generateAccessToken(payload);
+    const newRefreshToken = await this.generateRefreshToken(payload);
+
+    /*
+      update the refresh token and add it to DB
+    */
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: await bcrypt.hash(newRefreshToken, 12) },
+    });
+
+    /*
+      refresh token response
+    */
+    return {
+      message: 'Token refreshed successfully',
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
     };
   }
 }
