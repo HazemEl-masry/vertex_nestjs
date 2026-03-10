@@ -12,6 +12,7 @@ export class UserController {
   /*
     update user
   */
+ @UseGuards(JwtGuard)
   @Patch('update')
   updateUser(
     @Body() updateUserDto: UpdateUserDto,
@@ -23,6 +24,7 @@ export class UserController {
   /*
     change user password
   */
+ @UseGuards(JwtGuard)
   @Patch('changePassword')
   changePassword(
     @Body() changePasswordUserDto: ChangePasswordUserDto,

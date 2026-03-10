@@ -16,28 +16,41 @@ export class UserService {
   // ==============> Update User Service <==============
 
   async updateUser(updateUserDto: UpdateUserDto, userId: string) {
-    /*
-        fiend user by id
-    */
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
 
-    /*
-        check if the user is correct
-    */
     if (!user) {
-      throw new NotFoundException('user not found');
+      throw new NotFoundException('User not found');
     }
 
-    /*
-        update user response
-    */
-    return await this.prisma.user.update({
+    if (updateUserDto.email) {
+      const existingEmail = await this.prisma.user.findUnique({
+        where: { email: updateUserDto.email },
+      });
+
+      if (existingEmail && existingEmail.id !== userId) {
+        throw new ConflictException('Email is already in use');
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        username: updateUserDto.username,
-        email: updateUserDto.email,
+        ...(updateUserDto.username && { username: updateUserDto.username }),
+        ...(updateUserDto.email && { email: updateUserDto.email }),
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
       },
     });
+
+    return {
+      message: 'Updated successfully',
+      data: updatedUser,
+    };
   }
 
   // ==============> Change Password User Service <==============
@@ -47,40 +60,57 @@ export class UserService {
     userId: string,
   ) {
     /*
-        fiend user by id
-    */
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      find user by id
+  */
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     /*
-        check if the user is correct
-    */
-    if (!user) throw new NotFoundException('User not found');
+      check if the user exists
+  */
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     /*
-        check if the current password is correct
-    */
+      check current password
+  */
     const isMatch = await bcrypt.compare(
       changePasswordUserDto.currentPassword,
       user.password,
     );
 
-    if (!isMatch)
+    if (!isMatch) {
       throw new UnauthorizedException('Current password is incorrect');
+    }
 
     /*
-        hashing new password before save in DB
-    */
+      hash new password
+  */
     const hashedPassword = await bcrypt.hash(
       changePasswordUserDto.newPassword,
       12,
     );
 
     /*
-        change user password response
-    */
-    return await this.prisma.user.update({
+      update password
+  */
+    const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+      },
     });
+
+    return {
+      message: 'Password changed successfully',
+      data: updatedUser,
+    };
   }
 }

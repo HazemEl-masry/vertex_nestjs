@@ -140,6 +140,7 @@ export class AuthService {
       message: 'Login successfully',
       data: {
         id: user.id,
+        username: user.username,
         email: user.email,
         access_token: accessToken,
         refresh_token: refreshToken,
