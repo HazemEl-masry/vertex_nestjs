@@ -22,12 +22,15 @@ export class UserService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     /*
-        check if the user correct
+        check if the user is correct
     */
     if (!user) {
       throw new NotFoundException('user not found');
     }
 
+    /*
+        update user response
+    */
     return await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -43,10 +46,19 @@ export class UserService {
     changePasswordUserDto: ChangePasswordUserDto,
     userId: string,
   ) {
+    /*
+        fiend user by id
+    */
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
+    /*
+        check if the user is correct
+    */
     if (!user) throw new NotFoundException('User not found');
 
+    /*
+        check if the current password is correct
+    */
     const isMatch = await bcrypt.compare(
       changePasswordUserDto.currentPassword,
       user.password,
@@ -55,11 +67,17 @@ export class UserService {
     if (!isMatch)
       throw new UnauthorizedException('Current password is incorrect');
 
+    /*
+        hashing new password before save in DB
+    */
     const hashedPassword = await bcrypt.hash(
       changePasswordUserDto.newPassword,
       12,
     );
 
+    /*
+        change user password response
+    */
     return await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
