@@ -9,6 +9,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
+  /*
+    update user info (username / email)
+  */
   async updateUser(updateUserDto: UpdateUserDto, userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
