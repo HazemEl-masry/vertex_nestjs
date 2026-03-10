@@ -40,7 +40,7 @@ export class UserService {
     });
   }
 
-  // ==============> Update User Service <==============
+  // ==============> Change Password User Service <==============
 
   async changePassword(
     changePasswordUserDto: ChangePasswordUserDto,
